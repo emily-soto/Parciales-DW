@@ -1,0 +1,132 @@
+---
+title: "dw-2020-parcial-1"
+author: "Emily Soto"
+date: "20/09/2021"
+output: rmarkdown::github_document
+always_allow_html: true
+
+---
+
+# Examen parcial
+
+Indicaciones generales:
+
+* Usted tiene el período de la clase para resolver el examen parcial.
+* La entrega del parcial, al igual que las tareas, es por medio de su cuenta de github, pegando el link en el portal de MiU.
+
+
+* Pueden hacer uso del material del curso e internet (stackoverflow, etc.). Sin embargo, si encontramos algún indicio de copia, se anulará el exámen para los estudiantes involucrados. Por lo tanto, aconsejamos no compartir las agregaciones que generen. 
+
+## Sección I: Preguntas teóricas.
+
+* Existen 10 preguntas directas en este Rmarkdown, de las cuales usted deberá responder 5. Las 5 a responder estarán determinadas por un muestreo aleatorio basado en su número de carné.
+
+* Ingrese su número de carné en  `set.seed()` y corra el chunk de R para determinar cuáles preguntas debe responder.
+
+
+```{r, echo=TRUE, cache=TRUE}
+library(dplyr)
+library(ggplot2)
+set.seed(20190508) 
+v<- 1:10
+preguntas <-sort(sample(v, size = 6, replace = FALSE ))
+
+paste0("Mis preguntas a resolver son: ", paste0(preguntas,collapse = ", "))
+
+```
+
+
+### Listado de preguntas teóricas
+
+#### 1. Para las siguientes sentencias de `base R`, liste su contraparte de `dplyr`:
+    * `str()`     R// glimpse()
+    * `df[,c("a","b")]`     R// df %>% select(a,b)
+    * `names(df)[4] <- "new_name"` donde la posición 4 corresponde a la variable `old_name`
+      R//   df %>% rename(new_name=`old name`)
+    * `df[df$variable == "valor",]`
+      R//  df  %>% filter(variable=="valor")
+    
+    
+#### 2. Al momento de filtrar en SQL, ¿cuál keyword cumple las mismas funciones que el keyword `OR`  para filtrar uno o más elementos una misma columna?
+    R// El keyword "IN"
+
+#### 3. ¿Por qué en R utilizamos funciones de la familia apply (lapply,vapply) en lugar de utilizar ciclos?
+      - Es más eficiente, ya que cruza los datos de multiples maneras en lugar de asignar un valor a cada variable como sucede en un ciclo, esto ocasiona que haya un mejor performance saturando menos la RAM de la compu
+      - Se entiende mejor el código: a primera vista, no hay que tratar de entender como funciona un ciclo que tienden a ser en muchas lineas, en cambio con esta familia de funciones se puede resolver incluso en menos de una linea
+      -El código es más adaptable a otras variables o dataset
+
+#### 5. ¿Cuál es la forma correcta de cargar un archivo de texto donde el delimitador es `:`?
+      R// con la librería "readr" -> read_delim("df", delim = ":")
+
+#### 7. ¿Qué pasa si quiero agregar una nueva categoría a un factor que no se encuentra en los niveles existentes?
+      Si se desea agregar la categoría y no existe ya dentro de los niveles, R asignará un NA dentro de los niveles o nos mostrará un warning. Ejemplo:
+```{r}
+genero <- c("h", "m")
+x=c("Otro","h","m")
+factor(x, levels = genero)
+```
+    Sin embargo, si se agrega como un nuevo nivel si lo hará sin problemas con la función levels() o relevel()
+
+#### 9. En SQL, ¿para qué utilizamos el keyword `HAVING`?
+      "HAVING" es una función que funciona como un WHERE, pero a diferencia de esta, se pueden hacer agregaciones con operaciones como COUNT(), MAX(), MEAN(), etc.
+
+  
+#### Extra: ¿Cuántos posibles exámenes de 5 preguntas se pueden realizar utilizando como banco las diez acá presentadas?(responder con código de R.)
+
+```{r}
+library(gtools)
+preguntas <- c(1:10) 
+combinaciones <- combinations(10, 5, preguntas)
+nrow(combinaciones)
+```
+
+
+## Sección II Preguntas prácticas.
+
+
+* Conteste las siguientes preguntas utilizando sus conocimientos de R. Adjunte el código que utilizó para llegar a sus conclusiones en un chunk del markdown.
+
+
+## A
+*Se asume que la variable "venta" ya está en utilidad total por pedido
+De los clientes que están en más de un país,¿cuál cree que es el más rentable y por qué?
+```{r }
+#Resolución
+df=readRDS("C:/Users/Emily Soto/Desktop/Data Science/DW/Parcial1/parcial_anonimo.rds")
+clientes_paises=df %>%select(Cliente, Pais, `Unidades plaza`, Venta) %>% group_by(Cliente) %>% summarise(Pais_presencia=n_distinct(Pais), Unidades= sum(`Unidades plaza`),Venta=sum(Venta), Proporcion=Unidades/Venta ) %>% filter(Pais_presencia>1)
+clientes_paises[order(clientes_paises$Venta, decreasing = T),]
+
+clientes=clientes_paises$Cliente
+
+
+ggplot(data=df[df$Cliente==clientes,], aes(x=DATE, y=Venta, group=Cliente))+ geom_line(aes(color=Cliente))+ theme(legend.position="bottom")
+
+ggplot(data=clientes_paises)+
+  geom_bar(aes(x=Cliente,y=Unidades), fill='blue', stat="identity") +
+    geom_point(aes(x=Cliente,y=Venta), color = rgb(0, 1, 0), pch=16, size=1) +
+    geom_path(aes(x=Cliente,y=Venta, group=1), colour="slateblue1", lty=3, size=0.9)+theme(axis.text.x = element_text(angle=90, vjust=0.6)) 
+
+```
+Dentro de los clientes más rentables, basados en el criterio de ventas y unidades, se encuentran los clientes:
+a17a7558, ff122c3f y c53868a0. Además, en las gráficas se puede notar que no solo tienen un buen performance a través del tiempo sino que tambien podemos ver que la utilidad es bastante alta en porporción a las pocas unidades vendidas.
+
+## B
+Estrategia de negocio ha decidido que ya no operará en aquellos territorios cuyas pérdidas sean "considerables". Bajo su criterio, ¿cuáles son estos territorios y por qué ya no debemos operar ahí
+
+```{r }
+###resuelva acá
+summary(df$Venta)
+bajo_media=df %>%select(Territorio,  `Unidades plaza`, Venta) %>% group_by(Territorio) %>% summarise(Unidades= sum(`Unidades plaza`),Ventas=sum(Venta), Ingreso_unitario=Ventas/Unidades) %>% filter(Ingreso_unitario<mean(Ingreso_unitario))
+bajo_media=bajo_media[order(bajo_media$Ingreso_unitario, decreasing = F),]
+bajo_media
+
+ggplot(data=bajo_media)+
+  geom_bar(aes(x=Territorio, y=Ingreso_unitario), fill='green', stat="identity") 
+
+```
+Los territorios que se deben cerrar, basados en el criterio de ingreso marginal, son aquellos territorios con un ingreso menor a 7 por unidad, considerando que la media está por encima de 9.5.
+Estos son:
+```{r}
+bajo_media[1:13,1]
+```
+
